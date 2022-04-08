@@ -113,11 +113,10 @@ func (r *ClusterGroupUpgradeReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
-	// the reconcile logic must be validated and changed
 	if clusterGroupUpgrade.Status.Backup != nil {
 		for _, v := range clusterGroupUpgrade.Status.Backup.Status {
 			//nolint
-			if v == BackupStatePreparingToStart || v == BackupStateStarting {
+			if v == BackupStatePreparingToStart || v == BackupStateStarting || v == BackupStateActive {
 				requeueAfter := 30 * time.Second
 				nextReconcile = ctrl.Result{RequeueAfter: requeueAfter}
 				err = r.updateStatus(ctx, clusterGroupUpgrade)

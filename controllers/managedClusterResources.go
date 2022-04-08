@@ -368,6 +368,8 @@ func (r *ClusterGroupUpgradeReconciler) getJobStatus(
 					"Partially done")
 				return JobDeadline, nil
 			} else if condition.Reason == "BackoffLimitExceeded" {
+				r.Log.Info("[getJobStatus]", "BackoffLimitExceeded",
+					"Job failed")
 				return JobBackoffLimitExceeded, nil
 			}
 			break
@@ -539,7 +541,7 @@ func (r *ClusterGroupUpgradeReconciler) getBackupJobTemplateData(clusterGroupUpg
 
 	rv.Cluster = clusterName
 	rv.JobTimeout = uint64(
-		clusterGroupUpgrade.Spec.RemediationStrategy.Timeout) * 60
+		clusterGroupUpgrade.Spec.RemediationStrategy.Timeout)
 
 	// TODO: currently using hard-coded recovery image, we must get
 	// image from csv.

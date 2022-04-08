@@ -61,6 +61,7 @@ spec:
 
 // TODO: image must use var {{ .WorkloadImage }} rather than hard coded image
 // during template initialization, this var must be recovered from csv
+
 // MngClusterActCreateBackupJob creates k8s job
 const MngClusterActCreateBackupJob string = `
 {{ template "actionGVK"}}

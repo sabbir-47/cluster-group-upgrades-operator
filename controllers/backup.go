@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	ranv1alpha1 "github.com/openshift-kni/cluster-group-upgrades-operator/api/v1alpha1"
 
@@ -89,7 +88,7 @@ func (r *ClusterGroupUpgradeReconciler) triggerBackup(ctx context.Context, clust
 			r.Log.Info("[triggerBackup]", "cluster", cluster, "final state", currentState)
 
 		case BackupStateActive:
-			nextState, err = r.backupActive(ctx, clusterGroupUpgrade, cluster)
+			nextState, err = r.backupActive(ctx, cluster)
 			if err != nil {
 				return err
 			}
@@ -191,51 +190,26 @@ func (r *ClusterGroupUpgradeReconciler) backupStarting(ctx context.Context, clus
 
 // backupActive handles conditions in BackupStateActive
 // returns: error
-func (r *ClusterGroupUpgradeReconciler) backupActive(ctx context.Context, clusterGroupUpgrade *ranv1alpha1.ClusterGroupUpgrade, cluster string) (string, error) {
+func (r *ClusterGroupUpgradeReconciler) backupActive(ctx context.Context, cluster string) (string, error) {
 
 	nextState, currentState := BackupStateActive, BackupStateActive
 	// log nextState, to be deleted
 	r.Log.Info("[active]", "active started", currentState)
-	// for test purpose
-	TimeOut := uint64(clusterGroupUpgrade.Spec.RemediationStrategy.Timeout) * 60
-	TimeInterval := 10
-	ticker := time.NewTicker(time.Second * time.Duration(TimeInterval)).C
-	timeout := time.After(time.Second * time.Duration(TimeOut))
-	var (
-		condition string
-		err       error
-	)
 
-JobActiveStatus:
-	for {
-		select {
-		case <-timeout:
-			r.Log.Info("[active]", "under timeout condition ", currentState)
-			nextState = BackupStateTimeout
-			return nextState, fmt.Errorf(
-				"[active] Deadline Exceeded %v in %s state", condition, nextState)
-
-		case <-ticker:
-			condition, err = r.getActiveConditions(ctx, cluster, backupJobView[0].resourceName)
-			if err != nil {
-				return nextState, err
-			}
-			r.Log.Info("[active]", "condition returned under ticker:", condition)
-			if condition != JobActive {
-				r.Log.Info("[active]", "breaking outer loop condition", condition)
-				break JobActiveStatus
-			}
-			nextState = BackupStateActive
-			return nextState, nil
-		}
+	condition, err := r.getActiveConditions(ctx, cluster, backupJobView[0].resourceName)
+	if err != nil {
+		return nextState, err
 	}
 
 	switch condition {
-	case JobDeadline:
-		nextState = BackupStateTimeout
+	case JobActive:
+		nextState = PrecacheStateActive
 
 	case JobSucceeded:
 		nextState = BackupStateSucceeded
+
+	case JobDeadline:
+		nextState = BackupStateTimeout
 
 	case JobBackoffLimitExceeded:
 		nextState = BackupStateError
@@ -244,7 +218,7 @@ JobActiveStatus:
 		return currentState, fmt.Errorf("[triggerbackup] unknown condition %s in %s state",
 			condition, currentState)
 	}
-	// log nextState, to be deleted
+
 	r.Log.Info("[active]", "nextState returned", nextState)
 	return nextState, nil
 
