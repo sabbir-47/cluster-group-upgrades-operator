@@ -341,6 +341,7 @@ func (r *ClusterGroupUpgradeReconciler) Reconcile(ctx context.Context, req ctrl.
 				}
 
 				if isUpgradeComplete {
+					r.Log.Info("Deleting mcv, jobs after upgrade is successful for backup and/or precache")
 					err = r.jobAndViewCleanup(ctx, clusterGroupUpgrade)
 					if err != nil {
 						msg := fmt.Sprint("Job and managedclusterview cleanup failed with error:", err)

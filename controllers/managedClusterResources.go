@@ -219,6 +219,8 @@ func (r *ClusterGroupUpgradeReconciler) deleteAllViews(ctx context.Context, clus
 	// Cleanup all existing view objects that might have been left behind
 	// in case of a crash etc.
 	for _, item := range deleteViews {
+		r.Log.Info("[deleteAllViews] deleting mcv",
+			"cluster", cluster, "template", item.resourceName)
 		err := r.deleteManagedClusterViewResource(ctx, item.resourceName, cluster)
 		if err != nil {
 			if !errors.IsNotFound(err) {
@@ -226,6 +228,7 @@ func (r *ClusterGroupUpgradeReconciler) deleteAllViews(ctx context.Context, clus
 			}
 		}
 	}
+	r.Log.Info("[deleteAllViews] all mcv deleted")
 	return nil
 }
 
@@ -298,9 +301,10 @@ func (r *ClusterGroupUpgradeReconciler) jobAndViewCleanup(
 
 	clusters, err := r.getAllClustersForUpgrade(ctx, clusterGroupUpgrade)
 	if err != nil {
-		return fmt.Errorf("[jobandViewCleanup]cannot obtain the CGU cluster list: %s", err)
+		return fmt.Errorf("[jobAndViewCleanup]cannot obtain the CGU cluster list: %s", err)
 	}
 
+	r.Log.Info("[jobAndViewCleanup]", "mcvtemplates to delete", viewTemplate, "namespaces to delete", deleteTemplate)
 	for _, cluster := range clusters {
 		err := r.deleteAllViews(ctx, cluster, viewTemplate)
 
